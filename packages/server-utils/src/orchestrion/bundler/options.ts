@@ -10,6 +10,16 @@ export type PluginOptions = {
    */
   instrumentations?: InstrumentationConfig[];
   /**
+   * Module names (orchestrion `module.name`) to exclude from the transform.
+   *
+   * Used by the Cloudflare plugin to skip modules whose instrumented code runs at module scope: on
+   * workerd, `diagnostics_channel`'s `hasSubscribers` is a method (always truthy) rather than a
+   * boolean, so the transform's "no subscribers" fast-path never triggers and its publish/`runStores`
+   * calls run even at module scope — which workerd forbids, crashing the worker at boot. Excluded
+   * modules are instrumented manually instead (e.g. `app.use(honoMiddleware(app))` for `hono`).
+   */
+  excludeModules?: string[];
+  /**
    * Automatic instrumentation of server-side dependencies at build time.
    *
    * Set to `false` to make the plugin inert, so no instrumentation code is injected.
@@ -80,8 +90,13 @@ export function orchestrionTransformOptions(
   options: PluginOptions,
   { injectDiagnostics = true }: { injectDiagnostics?: boolean } = {},
 ): CodeTransformerPluginOptions {
+  const excludeModules = new Set(options.excludeModules ?? []);
+  const instrumentations = [...SENTRY_INSTRUMENTATIONS, ...(options.instrumentations || [])].filter(
+    instrumentation => !excludeModules.has(instrumentation.module.name),
+  );
+
   return {
-    instrumentations: [...SENTRY_INSTRUMENTATIONS, ...(options.instrumentations || [])],
+    instrumentations,
     customTransforms: { ...options.customTransforms, ...moduleInjectedTransforms() },
     ...(options.dcModule && { dcModule: options.dcModule }),
     ...(injectDiagnostics && { injectDiagnostics: () => ORCHESTRION_BUNDLER_MARKER_BANNER }),
