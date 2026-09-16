@@ -101,6 +101,7 @@ async function annotateWithViteParser(
   id: string,
   ignoredComponents: string[],
   parseAstAsync: ParseAstAsync,
+  injectIntoHtml: boolean,
   meta?: ComponentAnnotationTransformMeta,
 ): Promise<ComponentAnnotationTransformResult> {
   const idWithoutQueryAndHash = stripQueryAndHashFromPath(id);
@@ -129,6 +130,7 @@ async function annotateWithViteParser(
     ast,
     ignoredComponents,
     path.basename(idWithoutQueryAndHash),
+    injectIntoHtml,
   );
 
   if (insertions.length === 0) {
@@ -159,6 +161,7 @@ async function annotateWithViteParser(
 export function createViteComponentNameAnnotateHooks(
   ignoredComponents: string[],
   getParseAstAsync: () => Promise<ParseAstAsync | null>,
+  injectIntoHtml = false,
 ): {
   transform(
     code: string,
@@ -175,7 +178,7 @@ export function createViteComponentNameAnnotateHooks(
           return undefined;
         }
 
-        return await annotateWithViteParser(code, id, ignoredComponents, parseAstAsync, meta);
+        return await annotateWithViteParser(code, id, ignoredComponents, parseAstAsync, injectIntoHtml, meta);
       } catch {
         return undefined;
       }

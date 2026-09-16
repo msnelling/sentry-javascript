@@ -86,7 +86,7 @@ describe('annotation fast path', () => {
 
     await expect(runTransform(plugin, code, '/src/app.jsx')).resolves.toEqual({ code: 'fast-path', map: null });
 
-    expect(createViteComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], getOxcParseAstAsyncMock);
+    expect(createViteComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], getOxcParseAstAsyncMock, false);
     expect(viteAnnotationTransformMock).toHaveBeenCalledTimes(1);
     expect(transformAsyncMock).not.toHaveBeenCalled();
   });
@@ -100,23 +100,23 @@ describe('annotation fast path', () => {
 
     await expect(runTransform(plugin, code, '/src/app.jsx')).resolves.toEqual({ code: 'fast-path', map: null });
 
-    expect(createViteComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], expect.any(Function));
-    expect(createViteComponentNameAnnotateHooksMock).not.toHaveBeenCalledWith([], getOxcParseAstAsyncMock);
+    expect(createViteComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], expect.any(Function), false);
+    expect(createViteComponentNameAnnotateHooksMock).not.toHaveBeenCalledWith([], getOxcParseAstAsyncMock, false);
     expect(viteAnnotationTransformMock).toHaveBeenCalledTimes(1);
     expect(transformAsyncMock).not.toHaveBeenCalled();
   });
 
-  it('does not use the fast path when injecting into HTML', async () => {
+  it('uses the fast path when injecting into HTML', async () => {
     const plugin = _rollupPluginInternal(
       { release: { inject: false }, reactComponentAnnotation: { enabled: true, _experimentalInjectIntoHtml: true } },
-      'vite',
-      '8',
+      'rollup',
     ) as Plugin;
 
-    await runTransform(plugin, code, '/src/app.jsx');
+    await expect(runTransform(plugin, code, '/src/app.jsx')).resolves.toEqual({ code: 'fast-path', map: null });
 
-    expect(viteAnnotationTransformMock).not.toHaveBeenCalled();
-    expect(transformAsyncMock).toHaveBeenCalledTimes(1);
+    expect(createViteComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], getOxcParseAstAsyncMock, true);
+    expect(viteAnnotationTransformMock).toHaveBeenCalledTimes(1);
+    expect(transformAsyncMock).not.toHaveBeenCalled();
   });
 });
 
